@@ -112,6 +112,12 @@ func New(c *Config) (hash.Hash, error) {
 			return nil, err
 		}
 	}
+	d := new(digest)
+	d.initialize(c)
+	return d, nil
+}
+
+func (d *digest) initialize(c *Config) {
 	// Create parameter block.
 	var p [BlockSize]byte
 	p[0] = c.Size
@@ -139,7 +145,6 @@ func New(c *Config) (hash.Hash, error) {
 		p[3] = 1
 	}
 	// Initialize.
-	d := new(digest)
 	d.size = c.Size
 	for i := 0; i < 8; i++ {
 		d.h[i] = iv[i] ^ binary.LittleEndian.Uint32(p[i*4:])
@@ -155,15 +160,12 @@ func New(c *Config) (hash.Hash, error) {
 	}
 	// Save a copy of initialized state.
 	copy(d.ih[:], d.h[:])
-	return d, nil
 }
 
 // New256 returns a new hash.Hash computing the BLAKE2s 32-byte checksum.
 func New256() hash.Hash {
-	d, err := New(nil)
-	if err != nil {
-		panic(err.Error())
-	}
+	d := new(digest)
+	d.initialize(defaultConfig)
 	return d
 }
 
@@ -226,7 +228,11 @@ func (d *digest) Write(p []byte) (nn int, err error) {
 func (d0 *digest) Sum(in []byte) []byte {
 	// Make a copy of d0 so that caller can keep writing and summing.
 	d := *d0
+	hash := d.checkSum()
+	return append(in, hash[:d.size]...)
+}
 
+func (d *digest) checkSum() [Size]byte {
 	// Do not create unnecessary copies of the key.
 	if d.isKeyed {
 		for i := 0; i < len(d.paddedKey); i++ {
@@ -250,7 +256,7 @@ func (d0 *digest) Sum(in []byte) []byte {
 		d.f[1] = 0xffffffff
 	}
 	// Compress last block.
-	blocks(&d, d.x[:])
+	blocks(d, d.x[:])
 
 	var out [Size]byte
 	j := 0
@@ -261,5 +267,13 @@ func (d0 *digest) Sum(in []byte) []byte {
 		out[j+3] = byte(s >> 24)
 		j += 4
 	}
-	return append(in, out[:d.size]...)
+	return out
+}
+
+// Sum256 returns a 32-byte BLAKE2s hash of data.
+func Sum256(data []byte) [Size]byte {
+	var d digest
+	d.initialize(defaultConfig)
+	d.Write(data)
+	return d.checkSum()
 }

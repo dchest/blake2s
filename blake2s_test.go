@@ -29,6 +29,14 @@ func TestSum(t *testing.T) {
 	}
 }
 
+func TestSumLength(t *testing.T) {
+	h, _ := New(&Config{Size: 19})
+	sum := h.Sum(nil)
+	if len(sum) != 19 {
+		t.Fatalf("Sum() returned a slice larger than the given hash size")
+	}
+}
+
 func TestKeyedSum(t *testing.T) {
 	buf := make([]byte, len(goldenKeyed))
 	for i := range buf {
@@ -65,34 +73,22 @@ func BenchmarkWrite8K(b *testing.B) {
 
 func BenchmarkHash64(b *testing.B) {
 	b.SetBytes(64)
-	tmp := make([]byte, 32)
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bench = New256()
-		bench.Write(buf[:64])
-		bench.Sum(tmp[0:0])
+		Sum256(buf[:64])
 	}
 }
 
 func BenchmarkHash128(b *testing.B) {
 	b.SetBytes(128)
-	tmp := make([]byte, 32)
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bench = New256()
-		bench.Write(buf[:128])
-		bench.Sum(tmp[0:0])
+		Sum256(buf[:128])
 	}
 }
 
 func BenchmarkHash1K(b *testing.B) {
 	b.SetBytes(1024)
-	tmp := make([]byte, 32)
-	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		bench = New256()
-		bench.Write(buf[:1024])
-		bench.Sum(tmp[0:0])
+		Sum256(buf[:1024])
 	}
 }
 
